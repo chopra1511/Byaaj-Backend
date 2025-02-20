@@ -23,7 +23,7 @@ const startServer = () => {
   //CORS Configuration
   app.use(
     cors({
-      origin: ["http://localhost:5174", "https://byaaj-frontend.vercel.app/"],
+      origin: ["http://localhost:5174", "https://byaaj-frontend.vercel.app"],
       credentials: true,
     })
   );
