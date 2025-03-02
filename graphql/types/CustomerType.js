@@ -20,6 +20,7 @@ const CustomerType = new GraphQLObjectType({
   name: "Customer",
   fields: () => ({
     id: { type: GraphQLID },
+    userID: { type: GraphQLID },
     name: { type: GraphQLString },
     phone: { type: GraphQLString },
     interest: { type: GraphQLFloat },

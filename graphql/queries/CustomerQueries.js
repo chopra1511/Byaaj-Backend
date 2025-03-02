@@ -9,9 +9,16 @@ const InterestTracking = require("../../models/InterestTracking");
 const customerQueries = {
   customers: {
     type: new GraphQLList(CustomerType),
-    resolve: async () => {
+    resolve: async (parent, args, context) => {
       try {
-        const customers = await Customer.find().populate({
+        const { req } = context;
+        const userID = req.session.userId;
+
+        if (!userID) {
+          throw new Error("User is not authenticated");
+        }
+
+        const customers = await Customer.find({ userID }).populate({
           path: "entries", // Populates the 'entries' field from the Entry model
           populate: {
             path: "entries", // Populate the nested 'entries' array inside the Entry model
@@ -79,7 +86,6 @@ const customerQueries = {
       const year = trackingYear[0].map((year) => {
         if (year.year === args.year) return year.months;
       });
-      // console.log("Year:", year[0]);
       return year;
     },
   },

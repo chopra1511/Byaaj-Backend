@@ -11,6 +11,7 @@ const EntryType = require("../types/EntryType");
 const Entry = require("../../models/Entry");
 const InterestTrackingType = require("../types/InterestTrackingType");
 const InterestTracking = require("../../models/InterestTracking");
+const User = require("../../models/User");
 
 const customerMutations = {
   // createCustomer: {
@@ -74,9 +75,19 @@ const customerMutations = {
       interest: { type: GraphQLFloat },
       date: { type: GraphQLString }, // e.g. "2025-02-03"
     },
-    resolve: async (parent, args) => {
+    resolve: async (parent, args, context) => {
+      const { req } = context;
+      const userID = req.session.userId;
+
+      if (!userID) {
+        throw new Error("User not authenticated");
+      }
+
+      const user = await User.findById(userID).populate("customer");
+
       // 1. Create the customer document
       const newCustomer = new Customer({
+        userID: userID,
         name: args.name,
         phone: args.phone,
         interest: args.interest,
@@ -161,6 +172,8 @@ const customerMutations = {
       // 4. Link the Entry document to the customer
       savedCustomer.entries.push(savedEntry._id);
       await savedCustomer.save();
+      user.customer.push(savedEntry._id);
+      await user.save();
 
       return savedCustomer;
     },
@@ -320,7 +333,7 @@ const customerMutations = {
       month: { type: GraphQLString },
       interestAmt: { type: GraphQLFloat },
       status: { type: GraphQLString },
-      paidDate: {type: GraphQLString}
+      paidDate: { type: GraphQLString },
     },
     async resolve(parent, args) {
       const { customerID, year, month, interestAmt, status, paidDate } = args;
@@ -361,7 +374,7 @@ const customerMutations = {
               month,
               interestAmt: interestAmt,
               status,
-              paidDate
+              paidDate,
             });
 
             // If new status is Paid, add to total
@@ -423,6 +436,65 @@ const customerMutations = {
 
       await trackingData.save();
       return trackingData;
+    },
+  },
+
+  deleteCustomer: {
+    type: GraphQLString,
+    args: {
+      customerID: { type: GraphQLID },
+    },
+    async resolve(parent, args, context) {
+      try {
+        // Find the customer first
+        const customer = await Customer.findById(args.customerID);
+        if (!customer) {
+          throw new Error("Customer not found");
+        }
+
+        // Delete related entries
+        await Entry.deleteMany({ _id: { $in: customer.entries } });
+
+        // Delete related interestTracking records
+        await InterestTracking.deleteMany({
+          _id: { $in: customer.interestTracking },
+        });
+
+        // Delete the customer
+        await Customer.findByIdAndDelete(args.customerID);
+
+        return "Customer and related data deleted successfully";
+      } catch (error) {
+        throw new Error(error.message);
+      }
+    },
+  },
+
+  deleteEntry: {
+    type: GraphQLString,
+    args: {
+      customerID: { type: GraphQLID },
+      entryID: { type: GraphQLID },
+    },
+    async resolve(parent, args, context) {
+      try {
+        // Find the Entry document that belongs to the customer
+        const entry = await Entry.findOne({ customerID: args.customerID });
+
+        if (!entry) {
+          throw new Error("Entry not found for this customer");
+        }
+
+        // Use $pull to remove the specific entry inside the `entries` array
+        await Entry.updateOne(
+          { customerID: args.customerID },
+          { $pull: { entries: { _id: args.entryID } } } // Remove the matching entry
+        );
+
+        return "Customer entry deleted successfully";
+      } catch (error) {
+        throw new Error(error.message);
+      }
     },
   },
 };

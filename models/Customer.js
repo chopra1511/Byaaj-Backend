@@ -3,6 +3,11 @@ const Schema = mongoose.Schema;
 
 const customerSchema = new Schema(
   {
+    userID: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     name: { type: String, required: true },
     phone: { type: String, required: true },
     interest: { type: Number, default: 0 },
