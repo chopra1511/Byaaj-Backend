@@ -39,6 +39,8 @@ const startServer = () => {
     })
   );
 
+  app.set("trust proxy", 1);
+
   app.use(
     session({
       secret: process.env.JWT_SECRET,
@@ -46,12 +48,20 @@ const startServer = () => {
       saveUninitialized: false,
       store: store,
       cookie: {
-        secure: process.env.NODE_ENV === "production",
+        secure: process.env.NODE_ENV === "production" || true,
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+        sameSite: "None",
+        // sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       },
     })
   );
+
+  console.log("Secure:", process.env.NODE_ENV === "production");
+  console.log(
+    "SameSite:",
+    process.env.NODE_ENV === "production" ? "None" : "Lax"
+  );
+
 
     app.use(
       "/graphql",
