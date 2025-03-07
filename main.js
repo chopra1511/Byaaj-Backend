@@ -56,13 +56,6 @@ const startServer = () => {
     })
   );
 
-  console.log("Secure:", process.env.NODE_ENV === "production");
-  console.log(
-    "SameSite:",
-    process.env.NODE_ENV === "production" ? "None" : "Lax"
-  );
-
-
     app.use(
       "/graphql",
       graphqlHTTP((req, res) => ({
